@@ -1,29 +1,46 @@
-# TradingAgents/graph/trading_graph.py
-
 import os
 from pathlib import Path
 import json
 from datetime import date
-from typing import Dict, Any, Tuple, List, Optional
+from typing import Dict, Any
 
 from langchain_openai import ChatOpenAI
 from langgraph.prebuilt import ToolNode
 
-from tradingagents.agents import *
+from tradingagents.agents import Toolkit
 from tradingagents.default_config import DEFAULT_CONFIG
-from tradingagents.agents.utils.memory import FinancialSituationMemory
 from tradingagents.agents.utils.agent_states import (
     AgentState,
     InvestDebateState,
     RiskDebateState,
 )
 from tradingagents.dataflows.interface import set_config
+from tradingagents.agents.utils.memory import FinancialSituationMemory
+
+import chromadb.errors
 
 from .conditional_logic import ConditionalLogic
 from .setup import GraphSetup
 from .propagation import Propagator
 from .reflection import Reflector
 from .signal_processing import SignalProcessor
+
+
+def safe_create_memory(name):
+    """Thread-safe memory creation or reuse for ChromaDB."""
+    from chromadb import PersistentClient
+
+    client = PersistentClient()  # or however you're creating `chroma_client`
+    try:
+        collection = client.create_collection(name=name)
+    except chromadb.errors.InternalError as e:
+        if "already exists" in str(e):
+            collection = client.get_collection(name=name)
+        else:
+            raise
+
+    return FinancialSituationMemory(name, collection=collection)
+
 
 
 class TradingAgentsGraph:
@@ -48,7 +65,7 @@ class TradingAgentsGraph:
         # Update the interface's config
         set_config(self.config)
 
-        # Create necessary directories
+        # Create required directories
         os.makedirs(
             os.path.join(self.config["project_dir"], "dataflows/data_cache"),
             exist_ok=True,
@@ -61,17 +78,17 @@ class TradingAgentsGraph:
         )
         self.toolkit = Toolkit(config=self.config)
 
-        # Initialize memories
-        self.bull_memory = FinancialSituationMemory("bull_memory")
-        self.bear_memory = FinancialSituationMemory("bear_memory")
-        self.trader_memory = FinancialSituationMemory("trader_memory")
-        self.invest_judge_memory = FinancialSituationMemory("invest_judge_memory")
-        self.risk_manager_memory = FinancialSituationMemory("risk_manager_memory")
+        # Thread-safe memory initialization
+        self.bull_memory = safe_create_memory("bull_memory")
+        self.bear_memory = safe_create_memory("bear_memory")
+        self.trader_memory = safe_create_memory("trader_memory")
+        self.invest_judge_memory = safe_create_memory("invest_judge_memory")
+        self.risk_manager_memory = safe_create_memory("risk_manager_memory")
 
-        # Create tool nodes
+        # Tool nodes
         self.tool_nodes = self._create_tool_nodes()
 
-        # Initialize components
+        # Initialize subcomponents
         self.conditional_logic = ConditionalLogic()
         self.graph_setup = GraphSetup(
             self.quick_thinking_llm,
@@ -93,54 +110,37 @@ class TradingAgentsGraph:
         # State tracking
         self.curr_state = None
         self.ticker = None
-        self.log_states_dict = {}  # date to full state dict
+        self.log_states_dict = {}
 
-        # Set up the graph
+        # Setup graph
         self.graph = self.graph_setup.setup_graph(selected_analysts)
 
     def _create_tool_nodes(self) -> Dict[str, ToolNode]:
-        """Create tool nodes for different data sources."""
         return {
-            "market": ToolNode(
-                [
-                    # online tools
-                    self.toolkit.get_YFin_data_online,
-                    self.toolkit.get_stockstats_indicators_report_online,
-                    # offline tools
-                    self.toolkit.get_YFin_data,
-                    self.toolkit.get_stockstats_indicators_report,
-                ]
-            ),
-            "social": ToolNode(
-                [
-                    # online tools
-                    self.toolkit.get_stock_news_openai,
-                    # offline tools
-                    self.toolkit.get_reddit_stock_info,
-                ]
-            ),
-            "news": ToolNode(
-                [
-                    # online tools
-                    self.toolkit.get_global_news_openai,
-                    self.toolkit.get_google_news,
-                    # offline tools
-                    self.toolkit.get_finnhub_news,
-                    self.toolkit.get_reddit_news,
-                ]
-            ),
-            "fundamentals": ToolNode(
-                [
-                    # online tools
-                    self.toolkit.get_fundamentals_openai,
-                    # offline tools
-                    self.toolkit.get_finnhub_company_insider_sentiment,
-                    self.toolkit.get_finnhub_company_insider_transactions,
-                    self.toolkit.get_simfin_balance_sheet,
-                    self.toolkit.get_simfin_cashflow,
-                    self.toolkit.get_simfin_income_stmt,
-                ]
-            ),
+            "market": ToolNode([
+                self.toolkit.get_YFin_data_online,
+                self.toolkit.get_stockstats_indicators_report_online,
+                self.toolkit.get_YFin_data,
+                self.toolkit.get_stockstats_indicators_report,
+            ]),
+            "social": ToolNode([
+                self.toolkit.get_stock_news_openai,
+                self.toolkit.get_reddit_stock_info,
+            ]),
+            "news": ToolNode([
+                self.toolkit.get_global_news_openai,
+                self.toolkit.get_google_news,
+                self.toolkit.get_finnhub_news,
+                self.toolkit.get_reddit_news,
+            ]),
+            "fundamentals": ToolNode([
+                self.toolkit.get_fundamentals_openai,
+                self.toolkit.get_finnhub_company_insider_sentiment,
+                self.toolkit.get_finnhub_company_insider_transactions,
+                self.toolkit.get_simfin_balance_sheet,
+                self.toolkit.get_simfin_cashflow,
+                self.toolkit.get_simfin_income_stmt,
+            ]),
         }
 
     def propagate(self, company_name, trade_date):
@@ -158,9 +158,7 @@ class TradingAgentsGraph:
             # Debug mode with tracing
             trace = []
             for chunk in self.graph.stream(init_agent_state, **args):
-                if len(chunk["messages"]) == 0:
-                    pass
-                else:
+                if chunk["messages"]:
                     chunk["messages"][-1].pretty_print()
                     trace.append(chunk)
 
@@ -191,12 +189,8 @@ class TradingAgentsGraph:
                 "bull_history": final_state["investment_debate_state"]["bull_history"],
                 "bear_history": final_state["investment_debate_state"]["bear_history"],
                 "history": final_state["investment_debate_state"]["history"],
-                "current_response": final_state["investment_debate_state"][
-                    "current_response"
-                ],
-                "judge_decision": final_state["investment_debate_state"][
-                    "judge_decision"
-                ],
+                "current_response": final_state["investment_debate_state"]["current_response"],
+                "judge_decision": final_state["investment_debate_state"]["judge_decision"],
             },
             "trader_investment_decision": final_state["trader_investment_plan"],
             "risk_debate_state": {

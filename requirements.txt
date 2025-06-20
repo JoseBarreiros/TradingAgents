@@ -3,22 +3,24 @@ langchain-openai
 langchain-experimental
 pandas
 yfinance
-praw
-feedparser
+# praw
+# feedparser
 stockstats
-eodhd
+# eodhd
 langgraph
 chromadb
 setuptools
-backtrader
-akshare
-tushare
+# backtrader
+# akshare
+# tushare
 finnhub-python
-parsel
+# parsel
 requests
 tqdm
-pytz
-redis
-chainlit
+# pytz
+# redis
+# chainlit
 rich
 questionary
+alpaca-py 
+matplotlib

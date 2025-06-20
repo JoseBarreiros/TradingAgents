@@ -2,13 +2,24 @@ import chromadb
 from chromadb.config import Settings
 from openai import OpenAI
 import numpy as np
+from chromadb.errors import NotFoundError
 
 
 class FinancialSituationMemory:
-    def __init__(self, name):
+    def __init__(self, name, collection=None):
         self.client = OpenAI()
         self.chroma_client = chromadb.Client(Settings(allow_reset=True))
-        self.situation_collection = self.chroma_client.create_collection(name=name)
+
+        if collection is not None:
+            self.situation_collection = collection
+        else:
+            try:
+                self.situation_collection = self.chroma_client.create_collection(name=name)
+            except Exception as e:
+                if "already exists" in str(e):
+                    self.situation_collection = self.chroma_client.get_collection(name=name)
+                else:
+                    raise
 
     def get_embedding(self, text):
         """Get OpenAI embedding for a text"""
