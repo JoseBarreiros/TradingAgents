@@ -25,6 +25,14 @@ class StockstatsUtils:
             "whether to use online tools to fetch data or offline tools. If True, will use online tools.",
         ] = False,
     ):
+
+        try:
+            pd.to_datetime(curr_date)
+        except Exception:
+            raise ValueError(
+                f"Error: curr_date '{curr_date}' is not a valid date string (expected YYYY-mm-dd)."
+            )
+
         df = None
         data = None
 

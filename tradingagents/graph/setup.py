@@ -11,6 +11,8 @@ from tradingagents.agents.utils.agent_utils import Toolkit
 
 from .conditional_logic import ConditionalLogic
 
+ALL_SUPPORTED_ANALYSTS = ["market", "social", "news", "fundamentals"]
+
 
 class GraphSetup:
     """Handles the setup and configuration of the agent graph."""
@@ -42,9 +44,7 @@ class GraphSetup:
         self.conditional_logic = conditional_logic
         self.risk_level = risk_level
 
-    def setup_graph(
-        self, selected_analysts=["market", "social", "news", "fundamentals"]
-    ):
+    def setup_graph(self, selected_analysts=ALL_SUPPORTED_ANALYSTS):
         """Set up and compile the agent workflow graph.
 
         Args:
@@ -56,7 +56,14 @@ class GraphSetup:
         """
         if len(selected_analysts) == 0:
             raise ValueError("Trading Agents Graph Setup Error: no analysts selected!")
-
+        for selected_analyst in selected_analysts:
+            if selected_analyst not in ALL_SUPPORTED_ANALYSTS:
+                raise ValueError(
+                    f"Trading Agents Graph Setup Error: {selected_analyst} is not a valid analyst type!"
+                )
+        assert len(selected_analysts) == len(
+            set(selected_analysts)
+        ), f"Trading Agents Graph Setup Error: Duplicate analysts selected! {selected_analysts}"
         # Create analyst nodes
         analyst_nodes = {}
         delete_nodes = {}

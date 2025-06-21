@@ -1,3 +1,4 @@
+import threading
 import chromadb
 from chromadb.config import Settings
 from openai import OpenAI
@@ -24,6 +25,7 @@ class FinancialSituationMemory:
                     )
                 else:
                     raise
+        self._lock = threading.Lock()
 
     def get_embedding(self, text):
         """Get OpenAI embedding for a text"""
@@ -35,47 +37,60 @@ class FinancialSituationMemory:
     def add_situations(self, situations_and_advice):
         """Add financial situations and their corresponding advice. Parameter is a list of tuples (situation, rec)"""
 
-        situations = []
-        advice = []
-        ids = []
-        embeddings = []
+        if not isinstance(situations_and_advice, list):
+            raise ValueError("Input must be a list of (situation, advice) tuples.")
+        for item in situations_and_advice:
+            if (
+                not isinstance(item, tuple)
+                or len(item) != 2
+                or not all(isinstance(x, str) for x in item)
+            ):
+                raise ValueError(
+                    f"Each item must be a tuple of two strings. Invalid item: {item}"
+                )
+        with self._lock:
+            situations = []
+            advice = []
+            ids = []
+            embeddings = []
 
-        offset = self.situation_collection.count()
+            offset = self.situation_collection.count()
 
-        for i, (situation, recommendation) in enumerate(situations_and_advice):
-            situations.append(situation)
-            advice.append(recommendation)
-            ids.append(str(offset + i))
-            embeddings.append(self.get_embedding(situation))
+            for i, (situation, recommendation) in enumerate(situations_and_advice):
+                situations.append(situation)
+                advice.append(recommendation)
+                ids.append(str(offset + i))
+                embeddings.append(self.get_embedding(situation))
 
-        self.situation_collection.add(
-            documents=situations,
-            metadatas=[{"recommendation": rec} for rec in advice],
-            embeddings=embeddings,
-            ids=ids,
-        )
+            self.situation_collection.add(
+                documents=situations,
+                metadatas=[{"recommendation": rec} for rec in advice],
+                embeddings=embeddings,
+                ids=ids,
+            )
 
     def get_memories(self, current_situation, n_matches=1):
         """Find matching recommendations using OpenAI embeddings"""
-        query_embedding = self.get_embedding(current_situation)
+        with self._lock:
+            query_embedding = self.get_embedding(current_situation)
 
-        results = self.situation_collection.query(
-            query_embeddings=[query_embedding],
-            n_results=n_matches,
-            include=["metadatas", "documents", "distances"],
-        )
-
-        matched_results = []
-        for i in range(len(results["documents"][0])):
-            matched_results.append(
-                {
-                    "matched_situation": results["documents"][0][i],
-                    "recommendation": results["metadatas"][0][i]["recommendation"],
-                    "similarity_score": 1 - results["distances"][0][i],
-                }
+            results = self.situation_collection.query(
+                query_embeddings=[query_embedding],
+                n_results=n_matches,
+                include=["metadatas", "documents", "distances"],
             )
 
-        return matched_results
+            matched_results = []
+            for i in range(len(results["documents"][0])):
+                matched_results.append(
+                    {
+                        "matched_situation": results["documents"][0][i],
+                        "recommendation": results["metadatas"][0][i]["recommendation"],
+                        "similarity_score": 1 - results["distances"][0][i],
+                    }
+                )
+
+            return matched_results
 
 
 if __name__ == "__main__":

@@ -6,6 +6,7 @@ from tradingagents.agents.utils.agent_states import (
     InvestDebateState,
     RiskDebateState,
 )
+from datetime import datetime
 
 
 class Propagator:
@@ -19,6 +20,19 @@ class Propagator:
         self, company_name: str, trade_date: str
     ) -> Dict[str, Any]:
         """Create the initial state for the agent graph."""
+
+        # Validate company_name
+        if not isinstance(company_name, str) or not company_name.strip():
+            raise ValueError("company_name must be a non-empty string.")
+
+        # Validate trade_date (expects 'YYYY-MM-DD' format)
+        try:
+            datetime.strptime(trade_date, "%Y-%m-%d")
+        except ValueError:
+            raise ValueError(
+                "trade_date must be a valid date string in 'YYYY-MM-DD' format."
+            )
+
         return {
             "messages": [("human", company_name)],
             "company_of_interest": company_name,

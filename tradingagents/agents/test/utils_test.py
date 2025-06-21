@@ -7,13 +7,10 @@ def test_toolkit_config_update_and_access():
     """
     Test that Toolkit.update_config correctly updates the configuration and that
     a Toolkit instance reflects the updated config values.
-
-    This test sets a custom config, creates a Toolkit instance, and asserts that
-    the config values are as expected.
     """
     custom_config = {"online_tools": False, "foo": "bar"}
-    Toolkit.update_config(custom_config)
     toolkit = Toolkit()
+    toolkit.update_config(custom_config)
     assert toolkit.config["online_tools"] is False
     assert toolkit.config["foo"] == "bar"
 

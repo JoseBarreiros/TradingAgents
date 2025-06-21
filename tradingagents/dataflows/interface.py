@@ -35,8 +35,17 @@ def get_finnhub_news(
         str: dataframe containing the news of the company in the time frame
 
     """
+    # Validate ticker
+    if not isinstance(ticker, str) or not ticker.strip():
+        raise ValueError("Error: 'ticker' must be a non-empty string.")
 
-    start_date = datetime.strptime(curr_date, "%Y-%m-%d")
+    try:
+        start_date = datetime.strptime(curr_date, "%Y-%m-%d")
+    except ValueError:
+        raise ValueError(
+            f"Error: Dates must be in 'YYYY-MM-DD' format. Got '{start_date}'"
+        )
+
     before = start_date - relativedelta(days=look_back_days)
     before = before.strftime("%Y-%m-%d")
 
@@ -74,6 +83,9 @@ def get_finnhub_company_insider_sentiment(
     Returns:
         str: a report of the sentiment in the past 15 days starting at curr_date
     """
+    # Validate ticker
+    if not isinstance(ticker, str) or not ticker.strip():
+        raise ValueError("Error: 'ticker' must be a non-empty string.")
 
     date_obj = datetime.strptime(curr_date, "%Y-%m-%d")
     before = date_obj - relativedelta(days=look_back_days)
@@ -115,6 +127,9 @@ def get_finnhub_company_insider_transactions(
     Returns:
         str: a report of the company's insider transaction/trading informtaion in the past 15 days
     """
+    # Validate ticker
+    if not isinstance(ticker, str) or not ticker.strip():
+        raise ValueError("Error: 'ticker' must be a non-empty string.")
 
     date_obj = datetime.strptime(curr_date, "%Y-%m-%d")
     before = date_obj - relativedelta(days=look_back_days)
@@ -149,6 +164,10 @@ def get_simfin_balance_sheet(
     ],
     curr_date: Annotated[str, "current date you are trading at, yyyy-mm-dd"],
 ):
+    # Validate ticker
+    if not isinstance(ticker, str) or not ticker.strip():
+        raise ValueError("Error: 'ticker' must be a non-empty string.")
+
     data_path = os.path.join(
         DATA_DIR,
         "fundamental_data",
@@ -196,6 +215,10 @@ def get_simfin_cashflow(
     ],
     curr_date: Annotated[str, "current date you are trading at, yyyy-mm-dd"],
 ):
+    # Validate ticker
+    if not isinstance(ticker, str) or not ticker.strip():
+        raise ValueError("Error: 'ticker' must be a non-empty string.")
+
     data_path = os.path.join(
         DATA_DIR,
         "fundamental_data",
@@ -243,6 +266,10 @@ def get_simfin_income_statements(
     ],
     curr_date: Annotated[str, "current date you are trading at, yyyy-mm-dd"],
 ):
+    # Validate ticker
+    if not isinstance(ticker, str) or not ticker.strip():
+        raise ValueError("Error: 'ticker' must be a non-empty string.")
+
     data_path = os.path.join(
         DATA_DIR,
         "fundamental_data",
@@ -375,6 +402,9 @@ def get_reddit_company_news(
     Returns:
         str: A formatted dataframe containing the latest news articles posts on reddit and meta information in these columns: "created_utc", "id", "title", "selftext", "score", "num_comments", "url"
     """
+    # Validate ticker
+    if not isinstance(ticker, str) or not ticker.strip():
+        raise ValueError("Error: 'ticker' must be a non-empty string.")
 
     start_date = datetime.strptime(start_date, "%Y-%m-%d")
     before = start_date - relativedelta(days=look_back_days)
@@ -631,8 +661,20 @@ def get_YFin_data_online(
     end_date: Annotated[str, "Start date in yyyy-mm-dd format"],
 ):
 
-    datetime.strptime(start_date, "%Y-%m-%d")
-    datetime.strptime(end_date, "%Y-%m-%d")
+    # Validate date formats
+    try:
+        start = datetime.strptime(start_date, "%Y-%m-%d")
+        end = datetime.strptime(end_date, "%Y-%m-%d")
+    except ValueError:
+        raise ValueError(
+            f"Error: Dates must be in 'YYYY-MM-DD' format. Got '{start_date}' and '{end_date}'."
+        )
+
+    # Validate date range
+    if start > end:
+        raise ValueError(
+            f"Error: start_date {start_date} is after end_date {end_date}."
+        )
 
     # Create ticker object
     ticker = yf.Ticker(symbol.upper())
@@ -672,6 +714,21 @@ def get_YFin_data(
     start_date: Annotated[str, "Start date in yyyy-mm-dd format"],
     end_date: Annotated[str, "Start date in yyyy-mm-dd format"],
 ) -> str:
+    # Validate date formats
+    try:
+        start = datetime.strptime(start_date, "%Y-%m-%d")
+        end = datetime.strptime(end_date, "%Y-%m-%d")
+    except ValueError:
+        raise ValueError(
+            f"Error: Dates must be in 'YYYY-MM-DD' format. Got '{start_date}' and '{end_date}'."
+        )
+
+    # Validate date range
+    if start > end:
+        raise ValueError(
+            f"Error: start_date {start_date} is after end_date {end_date}."
+        )
+
     # read in data
     data = pd.read_csv(
         os.path.join(
@@ -703,6 +760,11 @@ def get_YFin_data(
 
 
 def get_stock_news_openai(ticker, curr_date):
+
+    # Validate ticker
+    if not isinstance(ticker, str) or not ticker.strip():
+        raise ValueError("Error: 'ticker' must be a non-empty string.")
+
     client = OpenAI()
 
     response = client.responses.create(
@@ -771,6 +833,11 @@ def get_global_news_openai(curr_date):
 
 
 def get_fundamentals_openai(ticker, curr_date):
+
+    # Validate ticker
+    if not isinstance(ticker, str) or not ticker.strip():
+        raise ValueError("Error: 'ticker' must be a non-empty string.")
+
     client = OpenAI()
 
     response = client.responses.create(

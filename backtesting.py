@@ -142,6 +142,7 @@ def run_backtest(
     selected_analysts,
     config,
     num_workers=1,
+    reflect_and_remember=False,
 ):
     cash = initial_cash
     portfolio_value = []
@@ -149,6 +150,9 @@ def run_backtest(
     trade_markers = []
 
     if num_workers > 1:
+        assert (
+            reflect_and_remember is False
+        ), "Cannot reflect_and_remember in parallel mode"
         results = parallel_trade_days(
             bars_df, symbol, config, selected_analysts, num_workers
         )
@@ -167,6 +171,9 @@ def run_backtest(
                     "close_price": close_price,
                 }
             )
+        if reflect_and_remember:
+            # Reflect and remember after single-threaded backtest
+            agent.reflect_and_remember(1000)
 
     results = sorted(results, key=lambda x: x["date"])
     for r in results:
@@ -411,6 +418,12 @@ def main():
     parser.add_argument("--initial_cash", default=10000.0, type=float)
     parser.add_argument("--num_workers", default=4, type=int)
     parser.add_argument(
+        "--reflect_and_remember",
+        action="store_true",
+        default=False,
+        help="Enable reflection and memory after backtest. Only available with num_workers=1.",
+    )
+    parser.add_argument(
         "--selected_analysts",
         nargs="+",
         default=["market"],
@@ -475,6 +488,7 @@ def main():
         args.selected_analysts,
         config,
         args.num_workers,
+        args.reflect_and_remember,
     )
 
     # Convert to DataFrame

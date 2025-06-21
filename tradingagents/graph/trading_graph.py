@@ -3,7 +3,8 @@ from pathlib import Path
 import json
 from datetime import date
 from typing import Dict, Any
-
+import threading
+import copy
 from langchain_openai import ChatOpenAI
 from langgraph.prebuilt import ToolNode
 
@@ -14,6 +15,7 @@ from tradingagents.agents.utils.agent_states import (
     InvestDebateState,
     RiskDebateState,
 )
+import re
 from tradingagents.dataflows.interface import set_config
 from tradingagents.agents.utils.memory import FinancialSituationMemory
 
@@ -24,6 +26,11 @@ from .setup import GraphSetup
 from .propagation import Propagator
 from .reflection import Reflector
 from .signal_processing import SignalProcessor
+
+
+def _sanitize_filename(name):
+    # Replace any character that is not alphanumeric or underscore with underscore
+    return re.sub(r"[^A-Za-z0-9_]", "_", name)
 
 
 def safe_create_memory(name):
@@ -58,8 +65,10 @@ class TradingAgentsGraph:
             debug: Whether to run in debug mode
             config: Configuration dictionary. If None, uses default config
         """
+        self._owner_thread = threading.get_ident()
         self.debug = debug
-        self.config = config or DEFAULT_CONFIG
+        # Use a deep copy of DEFAULT_CONFIG if no config is provided
+        self.config = copy.deepcopy(DEFAULT_CONFIG) if config is None else config
 
         # Update the interface's config
         set_config(self.config)
@@ -115,6 +124,13 @@ class TradingAgentsGraph:
         # Setup graph
         self.graph = self.graph_setup.setup_graph(selected_analysts)
 
+    def _check_thread(self):
+        if threading.get_ident() != self._owner_thread:
+            raise RuntimeError(
+                "TradingAgentsGraph instance is not thread-safe. "
+                "Create a separate instance per thread."
+            )
+
     def _create_tool_nodes(self) -> Dict[str, ToolNode]:
         return {
             "market": ToolNode(
@@ -153,7 +169,7 @@ class TradingAgentsGraph:
 
     def propagate(self, company_name, trade_date):
         """Run the trading agents graph for a company on a specific date."""
-
+        self._check_thread()
         self.ticker = company_name
 
         # Initialize state
@@ -217,16 +233,21 @@ class TradingAgentsGraph:
         }
 
         # Save to file
-        directory = Path(f"eval_results/{self.ticker}/TradingAgentsStrategy_logs/")
+        safe_ticker = _sanitize_filename(self.ticker)
+        directory = Path(f"eval_results/{safe_ticker}/TradingAgentsStrategy_logs/")
         directory.mkdir(parents=True, exist_ok=True)
-
-        with open(
-            f"eval_results/{self.ticker}/TradingAgentsStrategy_logs/full_states_log.json",
-            "w",
-        ) as f:
-            json.dump(self.log_states_dict, f, indent=4)
+        log_path = directory / f"/full_states_log_{self.curr_state['trade_date']}.json"
+        try:
+            with open(
+                log_path,
+                "w",
+            ) as f:
+                json.dump(self.log_states_dict, f, indent=4)
+        except Exception as e:
+            print(f"[ERROR] Failed to write log to {log_path}: {e}")
 
     def reflect_and_remember(self, returns_losses):
+        self._check_thread()
         """Reflect on decisions and update memory based on returns."""
         self.reflector.reflect_bull_researcher(
             self.curr_state, returns_losses, self.bull_memory

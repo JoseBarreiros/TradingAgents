@@ -44,6 +44,9 @@ def getNewsData(query, start_date, end_date):
     if "-" in end_date:
         end_date = datetime.strptime(end_date, "%Y-%m-%d")
         end_date = end_date.strftime("%m/%d/%Y")
+    assert start_date < end_date, "Start date must be before end date"
+    if not isinstance(query, str) or not query.strip():
+        raise ValueError("Query must be a non-empty string.")
 
     headers = {
         "User-Agent": (

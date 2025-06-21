@@ -61,6 +61,18 @@ def fetch_top_from_category(
         "Path to the data folder. Default is 'reddit_data'.",
     ] = "reddit_data",
 ):
+    # Validate category
+    if not isinstance(category, str) or not category.strip():
+        raise ValueError("Category must be a non-empty string.")
+    try:
+        datetime.strptime(date, "%Y-%m-%d")
+    except ValueError:
+        raise ValueError(f"Date '{date}' must be in 'YYYY-MM-DD' format.")
+
+    # Validate max_limit
+    if not isinstance(max_limit, int) or max_limit <= 0:
+        raise ValueError("max_limit must be a positive integer.")
+
     base_path = data_path
 
     all_content = []
@@ -99,10 +111,14 @@ def fetch_top_from_category(
                 # if is company_news, check that the title or the content has the company's name (query) mentioned
                 if "company" in category and query:
                     search_terms = []
-                    if "OR" in ticker_to_company[query]:
-                        search_terms = ticker_to_company[query].split(" OR ")
+                    if query not in ticker_to_company:
+                        company_name = query
                     else:
-                        search_terms = [ticker_to_company[query]]
+                        company_name = ticker_to_company[query]
+                    if "OR" in company_name:
+                        search_terms = company_name.split(" OR ")
+                    else:
+                        search_terms = [company_name]
 
                     search_terms.append(query)
 
