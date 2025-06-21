@@ -218,3 +218,6 @@ python -m pytest tradingagents/
 python -m pytest test/
 time python backtesting.py --num_workers 2
 
+# Formatter
+
+black .
