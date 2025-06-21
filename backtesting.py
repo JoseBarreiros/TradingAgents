@@ -11,7 +11,7 @@ time python backtesting.py --start_date 2024-01-01 --end_date 2024-03-29  --deep
         --selected_analysts market social news fundamentals  
 
 test:
-time python backtesting.py --num_workers 4
+time python backtesting.py --num_workers 2
 """
 
 import os

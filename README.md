@@ -214,4 +214,7 @@ Please reference our work if you find *TradingAgents* provides you with some hel
 
 ## Testing
 
-python -m pytest tradingagents
+python -m pytest tradingagents/
+python -m pytest test/
+time python backtesting.py --num_workers 2
+
