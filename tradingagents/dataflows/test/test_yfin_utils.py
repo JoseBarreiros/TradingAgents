@@ -2,6 +2,7 @@ import pytest
 from unittest.mock import patch, MagicMock
 from tradingagents.dataflows.yfin_utils import YFinanceUtils
 
+
 @patch("tradingagents.dataflows.yfin_utils.yf")
 def test_get_stock_data_calls_history(mock_yf):
     """Test get_stock_data calls yfinance.Ticker.history with correct params."""
@@ -12,6 +13,7 @@ def test_get_stock_data_calls_history(mock_yf):
     result = utils.get_stock_data("AAPL", "2024-01-01", "2024-01-10")
     assert result == "data"
     mock_ticker.history.assert_called()
+
 
 @patch("tradingagents.dataflows.yfin_utils.yf")
 def test_get_stock_info_returns_dict(mock_yf):

@@ -42,7 +42,6 @@ def safe_create_memory(name):
     return FinancialSituationMemory(name, collection=collection)
 
 
-
 class TradingAgentsGraph:
     """Main class that orchestrates the trading agents framework."""
 
@@ -118,30 +117,38 @@ class TradingAgentsGraph:
 
     def _create_tool_nodes(self) -> Dict[str, ToolNode]:
         return {
-            "market": ToolNode([
-                self.toolkit.get_YFin_data_online,
-                self.toolkit.get_stockstats_indicators_report_online,
-                self.toolkit.get_YFin_data,
-                self.toolkit.get_stockstats_indicators_report,
-            ]),
-            "social": ToolNode([
-                self.toolkit.get_stock_news_openai,
-                self.toolkit.get_reddit_stock_info,
-            ]),
-            "news": ToolNode([
-                self.toolkit.get_global_news_openai,
-                self.toolkit.get_google_news,
-                self.toolkit.get_finnhub_news,
-                self.toolkit.get_reddit_news,
-            ]),
-            "fundamentals": ToolNode([
-                self.toolkit.get_fundamentals_openai,
-                self.toolkit.get_finnhub_company_insider_sentiment,
-                self.toolkit.get_finnhub_company_insider_transactions,
-                self.toolkit.get_simfin_balance_sheet,
-                self.toolkit.get_simfin_cashflow,
-                self.toolkit.get_simfin_income_stmt,
-            ]),
+            "market": ToolNode(
+                [
+                    self.toolkit.get_YFin_data_online,
+                    self.toolkit.get_stockstats_indicators_report_online,
+                    self.toolkit.get_YFin_data,
+                    self.toolkit.get_stockstats_indicators_report,
+                ]
+            ),
+            "social": ToolNode(
+                [
+                    self.toolkit.get_stock_news_openai,
+                    self.toolkit.get_reddit_stock_info,
+                ]
+            ),
+            "news": ToolNode(
+                [
+                    self.toolkit.get_global_news_openai,
+                    self.toolkit.get_google_news,
+                    self.toolkit.get_finnhub_news,
+                    self.toolkit.get_reddit_news,
+                ]
+            ),
+            "fundamentals": ToolNode(
+                [
+                    self.toolkit.get_fundamentals_openai,
+                    self.toolkit.get_finnhub_company_insider_sentiment,
+                    self.toolkit.get_finnhub_company_insider_transactions,
+                    self.toolkit.get_simfin_balance_sheet,
+                    self.toolkit.get_simfin_cashflow,
+                    self.toolkit.get_simfin_income_stmt,
+                ]
+            ),
         }
 
     def propagate(self, company_name, trade_date):
@@ -190,8 +197,12 @@ class TradingAgentsGraph:
                 "bull_history": final_state["investment_debate_state"]["bull_history"],
                 "bear_history": final_state["investment_debate_state"]["bear_history"],
                 "history": final_state["investment_debate_state"]["history"],
-                "current_response": final_state["investment_debate_state"]["current_response"],
-                "judge_decision": final_state["investment_debate_state"]["judge_decision"],
+                "current_response": final_state["investment_debate_state"][
+                    "current_response"
+                ],
+                "judge_decision": final_state["investment_debate_state"][
+                    "judge_decision"
+                ],
             },
             "trader_investment_decision": final_state["trader_investment_plan"],
             "risk_debate_state": {

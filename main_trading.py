@@ -6,7 +6,7 @@ from alpaca_trade_api.rest import REST
 # Setup Alpaca client
 API_KEY = os.getenv("APCA_API_KEY_ID")
 API_SECRET = os.getenv("APCA_API_SECRET_KEY")
-BASE_URL = 'https://paper-api.alpaca.markets/'  #os.getenv("APCA_API_BASE_URL")
+BASE_URL = "https://paper-api.alpaca.markets/"  # os.getenv("APCA_API_BASE_URL")
 
 alpaca = REST(API_KEY, API_SECRET, base_url=BASE_URL)
 account = alpaca.get_account()
@@ -37,21 +37,13 @@ print(f"Decision for {symbol}: {decision}")
 # If agent wants to buy or sell, place paper trade
 if decision == "BUY":
     alpaca.submit_order(
-        symbol=symbol,
-        qty=1,
-        side='buy',
-        type='market',
-        time_in_force='gtc'
+        symbol=symbol, qty=1, side="buy", type="market", time_in_force="gtc"
     )
     print(f"Placed BUY order for 1 share of {symbol}")
 
 elif decision == "SELL":
     alpaca.submit_order(
-        symbol=symbol,
-        qty=1,
-        side='sell',
-        type='market',
-        time_in_force='gtc'
+        symbol=symbol, qty=1, side="sell", type="market", time_in_force="gtc"
     )
     print(f"Placed SELL order for 1 share of {symbol}")
 

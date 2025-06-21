@@ -3,6 +3,7 @@ from unittest.mock import MagicMock
 from tradingagents.agents.researchers.bull_researcher import create_bull_researcher
 from tradingagents.agents.researchers.bear_researcher import create_bear_researcher
 
+
 @pytest.fixture
 def dummy_state():
     return {
@@ -20,6 +21,7 @@ def dummy_state():
         "messages": [],
     }
 
+
 def test_bull_researcher_node_updates_investment_debate_state(dummy_state):
     """
     Test that the bull researcher node updates the investment debate state with a bullish argument.
@@ -27,10 +29,13 @@ def test_bull_researcher_node_updates_investment_debate_state(dummy_state):
     This test sets up MagicMock LLM and memory objects, configures their return values,
     and asserts that the node's output updates the 'investment_debate_state' with the correct
     history, bull_history, count, and current_response fields reflecting the bull analyst's argument.
-    """    
+    """
     llm = MagicMock()
     memory = MagicMock()
-    memory.get_memories.return_value = [{"recommendation": "Past rec 1"}, {"recommendation": "Past rec 2"}]
+    memory.get_memories.return_value = [
+        {"recommendation": "Past rec 1"},
+        {"recommendation": "Past rec 2"},
+    ]
     llm.invoke.return_value = MagicMock(content="Bullish argument here.")
 
     node = create_bull_researcher(llm, memory)
@@ -42,6 +47,7 @@ def test_bull_researcher_node_updates_investment_debate_state(dummy_state):
     assert debate["count"] == 2
     assert debate["current_response"].startswith("Bull Analyst:")
 
+
 def test_bear_researcher_node_updates_investment_debate_state(dummy_state):
     """
     Test that the bear researcher node updates the investment debate state with a bearish argument.
@@ -49,10 +55,13 @@ def test_bear_researcher_node_updates_investment_debate_state(dummy_state):
     This test sets up MagicMock LLM and memory objects, configures their return values,
     and asserts that the node's output updates the 'investment_debate_state' with the correct
     history, bear_history, count, and current_response fields reflecting the bear analyst's argument.
-    """    
+    """
     llm = MagicMock()
     memory = MagicMock()
-    memory.get_memories.return_value = [{"recommendation": "Past rec 1"}, {"recommendation": "Past rec 2"}]
+    memory.get_memories.return_value = [
+        {"recommendation": "Past rec 1"},
+        {"recommendation": "Past rec 2"},
+    ]
     llm.invoke.return_value = MagicMock(content="Bearish argument here.")
 
     node = create_bear_researcher(llm, memory)

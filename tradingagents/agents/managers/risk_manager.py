@@ -35,7 +35,7 @@ def create_risk_manager(llm, memory, risk_level="medium"):
                 "Favor aggressive arguments and be willing to recommend BUY or SELL when there is reasonable upside. "
                 "Only recommend HOLD if there are clear and strong reasons."
             )
-        elif risk_level == "medium": 
+        elif risk_level == "medium":
             risk_guidance = (
                 "Balance risk and reward. Weigh both aggressive and conservative arguments equally. "
                 "Recommend BUY, SELL, or HOLD based on the overall strength of the debate."
@@ -49,7 +49,6 @@ def create_risk_manager(llm, memory, risk_level="medium"):
             risk_guidance_prompt = f"\nRisk Level Guidance: {risk_guidance}"
         else:
             risk_guidance_prompt = ""
-
 
         prompt = f"""As the Risk Management Judge and Debate Facilitator, your goal is to evaluate the debate between three risk analysts—Risky, Neutral, and Safe/Conservative—and determine the best course of action for the trader. Your decision must result in a clear recommendation: Buy, Sell, or Hold. Choose Hold only if strongly justified by specific arguments, not as a fallback when all sides seem valid. Strive for clarity and decisiveness.
 

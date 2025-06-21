@@ -2,6 +2,7 @@ import pytest
 from unittest.mock import MagicMock, patch
 from tradingagents.graph.trading_graph import TradingAgentsGraph
 
+
 def _full_final_state():
     return {
         "company_of_interest": "AAPL",
@@ -29,15 +30,17 @@ def _full_final_state():
         "final_trade_decision": "BUY",
     }
 
+
 def test_trading_agents_graph_initialization():
     """
     Test that TradingAgentsGraph initializes with the expected attributes:
     'graph', 'config', and 'toolkit'.
-    """    
+    """
     graph = TradingAgentsGraph()
     assert hasattr(graph, "graph")
     assert hasattr(graph, "config")
     assert hasattr(graph, "toolkit")
+
 
 @patch("tradingagents.graph.trading_graph.Propagator")
 def test_propagate_runs_and_returns_state(mock_propagator):

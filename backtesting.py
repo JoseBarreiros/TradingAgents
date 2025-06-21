@@ -1,4 +1,4 @@
-'''
+"""
 time python backtesting.py --start_date 2025-05-18 --end_date 2025-06-18  --deep_think_llm gpt-4o \
     --quick_think_llm gpt-4.1-mini --initial_cash 10000 \
     --symbol AAPL --num_workers 10 --risk_level medium \
@@ -12,7 +12,8 @@ time python backtesting.py --start_date 2024-01-01 --end_date 2024-03-29  --deep
 
 test:
 time python backtesting.py --num_workers 4
-'''
+"""
+
 import os
 import pandas as pd
 import numpy as np
@@ -45,17 +46,21 @@ def fetch_bars(data_client, symbol, start_date, end_date):
         symbol_or_symbols=symbol,
         timeframe=TimeFrame.Day,
         start=start_date,
-        end=end_date
+        end=end_date,
     )
     bars_df = data_client.get_stock_bars(bars_request).df
     bars_df = bars_df.xs(symbol)
     bars_df = bars_df.sort_index()
     return bars_df
 
+
 def calculate_metrics(results_df, daily_returns):
     cr = (results_df["value"].iloc[-1] / results_df["value"].iloc[0] - 1) * 100
     num_years = (results_df.index[-1] - results_df.index[0]).days / 365
-    arr = ((results_df["value"].iloc[-1] / results_df["value"].iloc[0]) ** (1 / num_years) - 1) * 100
+    arr = (
+        (results_df["value"].iloc[-1] / results_df["value"].iloc[0]) ** (1 / num_years)
+        - 1
+    ) * 100
     daily_return_values = [r["value"] for r in daily_returns]
     mean_return = np.mean(daily_return_values)
     std_return = np.std(daily_return_values)
@@ -65,13 +70,16 @@ def calculate_metrics(results_df, daily_returns):
     mdd = drawdown.min() * 100
     return cr, arr, sr, mdd
 
-def run_trade_day(symbol, trade_date_str, config, selected_analysts, open_price, close_price):
+
+def run_trade_day(
+    symbol, trade_date_str, config, selected_analysts, open_price, close_price
+):
     # Clone config and inject a unique memory name
     local_config = deepcopy(config)
     # Create a new agent instance inside the thread
     agent = TradingAgentsGraph(
-        selected_analysts=selected_analysts,
-        debug=True, config=local_config)
+        selected_analysts=selected_analysts, debug=True, config=local_config
+    )
 
     # Get decision
     _, decision = agent.propagate(symbol, trade_date_str)
@@ -86,38 +94,64 @@ def run_trade_day(symbol, trade_date_str, config, selected_analysts, open_price,
     return result
 
 
-def strategy(decision, trade_date_str, open_price, close_price, cash, annual_borrow_rate=0.05, trade_commision=0.0025):
-    # This strategy should be executed daily at the market open, so we only hold cash at night. 
+def strategy(
+    decision,
+    trade_date_str,
+    open_price,
+    close_price,
+    cash,
+    annual_borrow_rate=0.05,
+    trade_commision=0.0025,
+):
+    # This strategy should be executed daily at the market open, so we only hold cash at night.
 
     print(f"Decision: {decision} for {trade_date_str}")
-    quantity = int(cash // open_price)  # only buy full stocks 
+    quantity = int(cash // open_price)  # only buy full stocks
     print(f"Calculated stock quantity based on initial cash: {quantity}")
     if decision == "BUY":
         pnl = (close_price - open_price) * quantity
-        print(f"BUY executed: Bought {quantity} stocks at {open_price}, Sold at {close_price}, PnL = {pnl:.2f}")
+        print(
+            f"BUY executed: Bought {quantity} stocks at {open_price}, Sold at {close_price}, PnL = {pnl:.2f}"
+        )
     elif decision == "SELL":
-        # I first borrow the stock at a premium 
+        # I first borrow the stock at a premium
         commision = trade_commision * (close_price + open_price)
-        premium_for_borrowing_one_stock = open_price * (annual_borrow_rate/365) + commision
+        premium_for_borrowing_one_stock = (
+            open_price * (annual_borrow_rate / 365) + commision
+        )
         cost = premium_for_borrowing_one_stock * quantity
         # Inmediately sell
         pnl = (open_price - close_price) * quantity - cost
-        print(f"SELL executed: Shorted {quantity} stocks at {open_price}, "
-              f"Covered at {close_price}, Transaction Cost {cost:.2f}, "
-              f"TC per share: {premium_for_borrowing_one_stock:.2f}, PnL = {pnl:.2f}")
+        print(
+            f"SELL executed: Shorted {quantity} stocks at {open_price}, "
+            f"Covered at {close_price}, Transaction Cost {cost:.2f}, "
+            f"TC per share: {premium_for_borrowing_one_stock:.2f}, PnL = {pnl:.2f}"
+        )
     else:
         pnl = 0
         print("HOLD. No trade executed.")
     return pnl
 
-def run_backtest(agent, bars_df, initial_cash, strategy, symbol, selected_analysts, config, num_workers=1):
+
+def run_backtest(
+    agent,
+    bars_df,
+    initial_cash,
+    strategy,
+    symbol,
+    selected_analysts,
+    config,
+    num_workers=1,
+):
     cash = initial_cash
     portfolio_value = []
     daily_returns = []
     trade_markers = []
 
     if num_workers > 1:
-        results = parallel_trade_days(bars_df, symbol, config, selected_analysts, num_workers)
+        results = parallel_trade_days(
+            bars_df, symbol, config, selected_analysts, num_workers
+        )
     else:
         results = []
         for trade_date, row in bars_df.iterrows():
@@ -125,12 +159,14 @@ def run_backtest(agent, bars_df, initial_cash, strategy, symbol, selected_analys
             open_price = row["open"]
             close_price = row["close"]
             _, decision = agent.propagate(symbol, trade_date_str)
-            results.append({
-                "date": trade_date_str,
-                "decision": decision,
-                "open_price": open_price,
-                "close_price": close_price,
-            })
+            results.append(
+                {
+                    "date": trade_date_str,
+                    "decision": decision,
+                    "open_price": open_price,
+                    "close_price": close_price,
+                }
+            )
 
     results = sorted(results, key=lambda x: x["date"])
     for r in results:
@@ -143,8 +179,14 @@ def run_backtest(agent, bars_df, initial_cash, strategy, symbol, selected_analys
             trade_markers.append((trade_date_str, open_price, decision, pnl))
         cash += pnl
         portfolio_value.append({"date": trade_date_str, "value": cash})
-        daily_returns.append({"date": trade_date_str, "value": pnl / (cash - pnl if cash - pnl > 0 else 1)})
+        daily_returns.append(
+            {
+                "date": trade_date_str,
+                "value": pnl / (cash - pnl if cash - pnl > 0 else 1),
+            }
+        )
     return portfolio_value, daily_returns, trade_markers
+
 
 def parallel_trade_days(bars_df, symbol, config, selected_analysts, num_workers):
     futures = []
@@ -154,19 +196,20 @@ def parallel_trade_days(bars_df, symbol, config, selected_analysts, num_workers)
             trade_date_str = trade_date.strftime("%Y-%m-%d")
             open_price = row["open"]
             close_price = row["close"]
-            futures.append(executor.submit(
-                run_trade_day,
-                symbol,
-                trade_date_str,
-                config,
-                selected_analysts,
-                open_price,
-                close_price,
-            ))
+            futures.append(
+                executor.submit(
+                    run_trade_day,
+                    symbol,
+                    trade_date_str,
+                    config,
+                    selected_analysts,
+                    open_price,
+                    close_price,
+                )
+            )
         for f in as_completed(futures):
             results.append(f.result())
     return results
-
 
 
 def plot_backtest(
@@ -181,7 +224,7 @@ def plot_backtest(
     sr,
     mdd,
     selected_analysts,
-    output_dir
+    output_dir,
 ):
     """
     Plot portfolio value, normalized value, daily return, and asset price with trade markers.
@@ -190,46 +233,90 @@ def plot_backtest(
     """
     # Plot portfolio value, normalized value, daily return, and asset price
     fig, (ax1, ax2, ax3, ax4) = plt.subplots(
-        4, 1, figsize=(12, 12), sharex=True,
-        gridspec_kw={'height_ratios': [3, 1, 1, 1]},
-        constrained_layout=True 
+        4,
+        1,
+        figsize=(12, 12),
+        sharex=True,
+        gridspec_kw={"height_ratios": [3, 1, 1, 1]},
+        constrained_layout=True,
     )
 
     # Portfolio value
-    ax1.plot(results_df.index, results_df["value"], label="Portfolio Value", linewidth=2)
+    ax1.plot(
+        results_df.index, results_df["value"], label="Portfolio Value", linewidth=2
+    )
     ax1.scatter(results_df.index, results_df["value"], color="red", s=25)
     for x, y in zip(results_df.index, results_df["value"]):
-        ax1.annotate(f"${y:.2f}", (x, y), xytext=(0, 10), textcoords='offset points',
-                    ha='center', fontsize=7, rotation=0, clip_on=False)
-    ax1.set_title(f"{symbol} Portfolio Value\nCR%: {cr:.2f}, ARR%: {arr:.2f}\nSR: {sr:.2f}, MDD%: {mdd:.2f}\nanalysts: {selected_analysts}")
+        ax1.annotate(
+            f"${y:.2f}",
+            (x, y),
+            xytext=(0, 10),
+            textcoords="offset points",
+            ha="center",
+            fontsize=7,
+            rotation=0,
+            clip_on=False,
+        )
+    ax1.set_title(
+        f"{symbol} Portfolio Value\nCR%: {cr:.2f}, ARR%: {arr:.2f}\nSR: {sr:.2f}, MDD%: {mdd:.2f}\nanalysts: {selected_analysts}"
+    )
     ax1.set_ylabel("Portfolio ($)")
     ax1.yaxis.set_major_formatter(ticker.FuncFormatter(lambda x, _: f"${int(x):,}"))
-    ax1.grid(True, linestyle='--', alpha=0.6)
+    ax1.grid(True, linestyle="--", alpha=0.6)
     ax1.legend()
 
     # Normalized value
-    ax2.plot(results_df.index, results_df["normalized"], label="Normalized Portfolio", color="green", linewidth=2)
-    ax2.plot(spy_df.index, spy_df["normalized"], label="SPY Baseline", color="gray", linestyle="--")
+    ax2.plot(
+        results_df.index,
+        results_df["normalized"],
+        label="Normalized Portfolio",
+        color="green",
+        linewidth=2,
+    )
+    ax2.plot(
+        spy_df.index,
+        spy_df["normalized"],
+        label="SPY Baseline",
+        color="gray",
+        linestyle="--",
+    )
     ax2.scatter(results_df.index, results_df["normalized"], color="darkgreen", s=25)
     for x, y in zip(results_df.index, results_df["normalized"]):
-        ax2.annotate(f"{y:.4f}", (x, y), xytext=(0, 10), textcoords='offset points',
-                    ha='center', fontsize=7, rotation=0, clip_on=False)
+        ax2.annotate(
+            f"{y:.4f}",
+            (x, y),
+            xytext=(0, 10),
+            textcoords="offset points",
+            ha="center",
+            fontsize=7,
+            rotation=0,
+            clip_on=False,
+        )
     ax2.set_ylabel("Normalized")
-    ax2.grid(True, linestyle='--', alpha=0.6)
+    ax2.grid(True, linestyle="--", alpha=0.6)
     ax2.legend()
 
     # Daily returns
-    ax3.step(daily_return_df.index, daily_return_df["value"], label="Daily return", color="steelblue", where='mid')
+    ax3.step(
+        daily_return_df.index,
+        daily_return_df["value"],
+        label="Daily return",
+        color="steelblue",
+        where="mid",
+    )
     ax3.set_ylabel("Daily return")
     ax3.set_xlabel("Date")
     ax3.yaxis.set_major_locator(ticker.MaxNLocator(integer=True))
-    ax3.grid(True, linestyle='--', alpha=0.6)
+    ax3.grid(True, linestyle="--", alpha=0.6)
     ax3.legend()
 
     # Compute lower price for each day (min of open and close)
     bottoms = np.minimum(bars_df["open"], bars_df["close"])
     heights = np.abs(bars_df["close"] - bars_df["open"])
-    colors = ["green" if close > open_ else "red" for open_, close in zip(bars_df["open"], bars_df["close"])]
+    colors = [
+        "green" if close > open_ else "red"
+        for open_, close in zip(bars_df["open"], bars_df["close"])
+    ]
     # Draw bars from low to high, regardless of direction
     ax4.bar(
         bars_df.index,
@@ -239,29 +326,50 @@ def plot_backtest(
         width=0.6,
         align="center",
         alpha=0.6,
-        label="Open to Close Spread"
+        label="Open to Close Spread",
     )
-    ax4.plot(bars_df.index, bars_df["open"], color="blue", linestyle="--", linewidth=1.5, label="Open Price")
+    ax4.plot(
+        bars_df.index,
+        bars_df["open"],
+        color="blue",
+        linestyle="--",
+        linewidth=1.5,
+        label="Open Price",
+    )
     ax4.set_ylabel(f"{symbol} Price ($)")
     ax4.set_title(f"{symbol} Daily Open → Close Spread")
-    ax4.grid(True, linestyle='--', alpha=0.6)
+    ax4.grid(True, linestyle="--", alpha=0.6)
 
     # Add BUY/SELL markers at open price
     for date_str, open_price, decision, pnl in trade_markers:
-        date_match = bars_df.index[bars_df.index.strftime('%Y-%m-%d') == date_str]
+        date_match = bars_df.index[bars_df.index.strftime("%Y-%m-%d") == date_str]
         if len(date_match) == 0:
             continue
         date = date_match[0]
         color = "green" if decision == "BUY" else "red"
         marker = "^" if decision == "BUY" else "v"
         y_offset = 12
-        ax4.plot(date, open_price, marker=marker, color=color, markersize=10, label=decision, zorder=5)
-        ax4.annotate(f"pnl:{pnl:.2f}",
-                    (date, open_price),
-                    xytext=(0, y_offset), textcoords="offset points",
-                    ha="center", fontsize=8, color=color,
-                    zorder=6, weight="bold")
-    
+        ax4.plot(
+            date,
+            open_price,
+            marker=marker,
+            color=color,
+            markersize=10,
+            label=decision,
+            zorder=5,
+        )
+        ax4.annotate(
+            f"pnl:{pnl:.2f}",
+            (date, open_price),
+            xytext=(0, y_offset),
+            textcoords="offset points",
+            ha="center",
+            fontsize=8,
+            color=color,
+            zorder=6,
+            weight="bold",
+        )
+
     # Set y-axis limits with 20% padding
     min_price = min(bars_df[["open", "close"]].min())
     max_price = max(bars_df[["open", "close"]].max())
@@ -283,12 +391,21 @@ def plot_backtest(
     plt.savefig(plot_path, dpi=300)
     print(f"Plot saved as {plot_path}")
 
+
 def main():
-    parser = argparse.ArgumentParser(description="Run a TradingAgents backtest using Alpaca data.")
-    parser.add_argument("--start_date", default="2025-06-15", help="Start date (YYYY-MM-DD)")
+    parser = argparse.ArgumentParser(
+        description="Run a TradingAgents backtest using Alpaca data."
+    )
+    parser.add_argument(
+        "--start_date", default="2025-06-15", help="Start date (YYYY-MM-DD)"
+    )
     parser.add_argument("--symbol", default="NVDA", help="stock ticket")
-    parser.add_argument("--end_date", default="2025-06-18", help="End date (YYYY-MM-DD)")
-    parser.add_argument("--output_path", default="./results", help="Output path for the plot image")
+    parser.add_argument(
+        "--end_date", default="2025-06-18", help="End date (YYYY-MM-DD)"
+    )
+    parser.add_argument(
+        "--output_path", default="./results", help="Output path for the plot image"
+    )
     parser.add_argument("--deep_think_llm", default="gpt-4.1-nano", choices=MODELS)
     parser.add_argument("--quick_think_llm", default="gpt-4.1-nano", choices=MODELS)
     parser.add_argument("--initial_cash", default=10000.0, type=float)
@@ -298,10 +415,14 @@ def main():
         nargs="+",
         default=["market"],
         choices=["market", "social", "news", "fundamentals"],
-        help="List of analysts to use."
+        help="List of analysts to use.",
     )
-    parser.add_argument("--risk_level", default="medium", choices=["low", "medium", "high", "no_guidance"],
-                        help="Risk level for the trading strategy (low, medium, high, no_guidance)")
+    parser.add_argument(
+        "--risk_level",
+        default="medium",
+        choices=["low", "medium", "high", "no_guidance"],
+        help="Risk level for the trading strategy (low, medium, high, no_guidance)",
+    )
     args = parser.parse_args()
 
     timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
@@ -310,18 +431,18 @@ def main():
 
     # Initialize Alpaca data client
     data_client = StockHistoricalDataClient(API_KEY, API_SECRET)
- 
+
     # Configure TradingAgentsGraph
     config = DEFAULT_CONFIG.copy()
     config["deep_think_llm"] = args.deep_think_llm
     config["quick_think_llm"] = args.quick_think_llm
     config["max_debate_rounds"] = 1
     config["online_tools"] = True
-    config["risk_level"] = args.risk_level  
+    config["risk_level"] = args.risk_level
 
     agent = TradingAgentsGraph(
-        selected_analysts=args.selected_analysts,
-        debug=True, config=config)
+        selected_analysts=args.selected_analysts, debug=True, config=config
+    )
 
     # Backtest parameters
     symbol = args.symbol
@@ -336,10 +457,7 @@ def main():
 
     # Request SPY as baseline
     spy_request = StockBarsRequest(
-        symbol_or_symbols="SPY",
-        timeframe=TimeFrame.Day,
-        start=start_date,
-        end=end_date
+        symbol_or_symbols="SPY", timeframe=TimeFrame.Day, start=start_date, end=end_date
     )
     spy_df = data_client.get_stock_bars(spy_request).df
     spy_df = spy_df.xs("SPY")
@@ -348,8 +466,17 @@ def main():
 
     # Backtest loop
     print("\n--- Backtesting ---")
-    portfolio_value, daily_returns, trade_markers = run_backtest(agent, bars_df, initial_cash, strategy, symbol, args.selected_analysts, config, args.num_workers)
-    
+    portfolio_value, daily_returns, trade_markers = run_backtest(
+        agent,
+        bars_df,
+        initial_cash,
+        strategy,
+        symbol,
+        args.selected_analysts,
+        config,
+        args.num_workers,
+    )
+
     # Convert to DataFrame
     results_df = pd.DataFrame(portfolio_value)
     results_df["normalized"] = results_df["value"] / initial_cash
@@ -384,9 +511,21 @@ def main():
     print(f"Metrics saved to {metrics_path}")
 
     # Plot portfolio value, normalized value, daily return, and asset price
-    plot_backtest(results_df, spy_df, daily_return_df, bars_df, 
-                  trade_markers, symbol, cr, arr, sr, mdd, args.selected_analysts, output_dir)
+    plot_backtest(
+        results_df,
+        spy_df,
+        daily_return_df,
+        bars_df,
+        trade_markers,
+        symbol,
+        cr,
+        arr,
+        sr,
+        mdd,
+        args.selected_analysts,
+        output_dir,
+    )
 
-    
+
 if __name__ == "__main__":
     main()

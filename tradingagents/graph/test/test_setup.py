@@ -4,11 +4,12 @@ from tradingagents.agents.utils.agent_utils import Toolkit
 from tradingagents.graph.conditional_logic import ConditionalLogic
 from unittest.mock import MagicMock
 
+
 def test_graph_setup_initializes():
     """
     Test that GraphSetup initializes correctly with the provided arguments,
     and that the risk_level and conditional_logic attributes are set as expected.
-    """    
+    """
     toolkit = MagicMock(spec=Toolkit)
     logic = ConditionalLogic()
     gs = GraphSetup(

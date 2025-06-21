@@ -214,4 +214,4 @@ Please reference our work if you find *TradingAgents* provides you with some hel
 
 ## Testing
 
-python -m pytest tradingagents/graph/test/
+python -m pytest tradingagents

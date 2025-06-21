@@ -2,6 +2,7 @@ import pytest
 from unittest.mock import MagicMock
 from tradingagents.agents.trader.trader import create_trader
 
+
 @pytest.fixture
 def dummy_state():
     return {
@@ -14,6 +15,7 @@ def dummy_state():
         "messages": [],
     }
 
+
 def test_trader_node_returns_investment_plan(dummy_state):
     """
     Test that the trader node returns the expected investment plan string and correct output structure.
@@ -21,7 +23,7 @@ def test_trader_node_returns_investment_plan(dummy_state):
     This test sets up MagicMock LLM and memory objects, configures their return values,
     and asserts that the node's output contains the correct 'trader_investment_plan' key and value,
     the correct sender, and that the messages list contains the expected content.
-    """    
+    """
     llm = MagicMock()
     memory = MagicMock()
     memory.get_memories.return_value = [

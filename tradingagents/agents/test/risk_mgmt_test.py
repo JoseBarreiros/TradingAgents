@@ -4,6 +4,7 @@ from tradingagents.agents.risk_mgmt.aggresive_debator import create_risky_debato
 from tradingagents.agents.risk_mgmt.conservative_debator import create_safe_debator
 from tradingagents.agents.risk_mgmt.neutral_debator import create_neutral_debator
 
+
 @pytest.fixture
 def dummy_state():
     return {
@@ -26,6 +27,7 @@ def dummy_state():
         "messages": [],
     }
 
+
 def test_risky_debator_node_updates_risk_debate_state(dummy_state):
     """
     Test that the risky debator node updates the risk debate state with a risky argument.
@@ -33,7 +35,7 @@ def test_risky_debator_node_updates_risk_debate_state(dummy_state):
     This test sets up a MagicMock LLM, configures its return value, and asserts that the node's output
     updates the 'risk_debate_state' with the correct history, risky_history, latest_speaker, count,
     and current_risky_response fields reflecting the risky analyst's argument.
-    """    
+    """
     llm = MagicMock()
     llm.invoke.return_value = MagicMock(content="Risky argument here.")
     node = create_risky_debator(llm)
@@ -46,6 +48,7 @@ def test_risky_debator_node_updates_risk_debate_state(dummy_state):
     assert debate["count"] == 2
     assert debate["current_risky_response"].startswith("Risky Analyst:")
 
+
 def test_safe_debator_node_updates_risk_debate_state(dummy_state):
     """
     Test that the safe debator node updates the risk debate state with a safe argument.
@@ -53,7 +56,7 @@ def test_safe_debator_node_updates_risk_debate_state(dummy_state):
     This test sets up a MagicMock LLM, configures its return value, and asserts that the node's output
     updates the 'risk_debate_state' with the correct history, safe_history, latest_speaker, count,
     and current_safe_response fields reflecting the safe analyst's argument.
-    """    
+    """
     llm = MagicMock()
     llm.invoke.return_value = MagicMock(content="Safe argument here.")
     node = create_safe_debator(llm)
@@ -66,6 +69,7 @@ def test_safe_debator_node_updates_risk_debate_state(dummy_state):
     assert debate["count"] == 2
     assert debate["current_safe_response"].startswith("Safe Analyst:")
 
+
 def test_neutral_debator_node_updates_risk_debate_state(dummy_state):
     """
     Test that the neutral debator node updates the risk debate state with a neutral argument.
@@ -73,7 +77,7 @@ def test_neutral_debator_node_updates_risk_debate_state(dummy_state):
     This test sets up a MagicMock LLM, configures its return value, and asserts that the node's output
     updates the 'risk_debate_state' with the correct history, neutral_history, latest_speaker, count,
     and current_neutral_response fields reflecting the neutral analyst's argument.
-    """    
+    """
     llm = MagicMock()
     llm.invoke.return_value = MagicMock(content="Neutral argument here.")
     node = create_neutral_debator(llm)

@@ -3,6 +3,7 @@ from unittest.mock import MagicMock
 from tradingagents.agents.managers.research_manager import create_research_manager
 from tradingagents.agents.managers.risk_manager import create_risk_manager
 
+
 @pytest.fixture
 def dummy_state():
     return {
@@ -36,6 +37,7 @@ def dummy_state():
         "messages": [],
     }
 
+
 def test_research_manager_node_returns_investment_plan(dummy_state):
     """
     Test that the research manager node returns the expected investment plan string.
@@ -43,7 +45,7 @@ def test_research_manager_node_returns_investment_plan(dummy_state):
     This test sets up MagicMock LLM and memory objects, configures their return values,
     and asserts that the node's output contains the correct 'investment_plan' key and value,
     and that the 'investment_debate_state' is updated with the judge's decision.
-    """    
+    """
     llm = MagicMock()
     memory = MagicMock()
     llm.invoke.return_value = MagicMock(content="Research manager plan")
@@ -53,7 +55,10 @@ def test_research_manager_node_returns_investment_plan(dummy_state):
     assert "investment_plan" in result
     assert result["investment_plan"] == "Research manager plan"
     assert "investment_debate_state" in result
-    assert result["investment_debate_state"]["judge_decision"] == "Research manager plan"
+    assert (
+        result["investment_debate_state"]["judge_decision"] == "Research manager plan"
+    )
+
 
 def test_risk_manager_node_returns_final_trade_decision(dummy_state):
     """
@@ -62,7 +67,7 @@ def test_risk_manager_node_returns_final_trade_decision(dummy_state):
     This test sets up MagicMock LLM and memory objects, configures their return values,
     and asserts that the node's output contains the correct 'final_trade_decision' key and value,
     and that the 'risk_debate_state' is updated with the judge's decision.
-    """    
+    """
     llm = MagicMock()
     memory = MagicMock()
     llm.invoke.return_value = MagicMock(content="BUY")

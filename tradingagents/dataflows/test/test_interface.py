@@ -2,6 +2,7 @@ import pytest
 from unittest.mock import patch, MagicMock
 from tradingagents.dataflows import interface
 
+
 @patch("tradingagents.dataflows.interface.fetch_top_from_category")
 def test_get_reddit_global_news_empty(mock_fetch):
     """
@@ -10,6 +11,7 @@ def test_get_reddit_global_news_empty(mock_fetch):
     mock_fetch.return_value = []
     result = interface.get_reddit_global_news("2024-06-20", 1, 5)
     assert result == ""
+
 
 @patch("tradingagents.dataflows.interface.fetch_top_from_category")
 def test_get_reddit_global_news_with_posts(mock_fetch):

@@ -2,6 +2,7 @@ import threading
 import pytest
 from tradingagents.graph.trading_graph import TradingAgentsGraph
 
+
 def test_trading_agents_graph_thread_safety(monkeypatch):
     """
     Test that TradingAgentsGraph is thread-safe by instantiating it in multiple threads.
@@ -12,11 +13,15 @@ def test_trading_agents_graph_thread_safety(monkeypatch):
     from tradingagents.graph import trading_graph
 
     created_names = []
+
     def fake_safe_create_memory(name):
         created_names.append(name)
+
         class DummyMemory:
             pass
+
         return DummyMemory()
+
     monkeypatch.setattr(trading_graph, "safe_create_memory", fake_safe_create_memory)
 
     # Function to instantiate TradingAgentsGraph
