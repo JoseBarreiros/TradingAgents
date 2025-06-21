@@ -101,6 +101,7 @@ class TradingAgentsGraph:
             self.invest_judge_memory,
             self.risk_manager_memory,
             self.conditional_logic,
+            self.config["risk_level"],
         )
 
         self.propagator = Propagator()

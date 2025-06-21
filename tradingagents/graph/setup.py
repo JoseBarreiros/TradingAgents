@@ -27,6 +27,7 @@ class GraphSetup:
         invest_judge_memory,
         risk_manager_memory,
         conditional_logic: ConditionalLogic,
+        risk_level: str = "medium",
     ):
         """Initialize with required components."""
         self.quick_thinking_llm = quick_thinking_llm
@@ -39,6 +40,7 @@ class GraphSetup:
         self.invest_judge_memory = invest_judge_memory
         self.risk_manager_memory = risk_manager_memory
         self.conditional_logic = conditional_logic
+        self.risk_level = risk_level
 
     def setup_graph(
         self, selected_analysts=["market", "social", "news", "fundamentals"]
@@ -105,7 +107,7 @@ class GraphSetup:
         neutral_analyst = create_neutral_debator(self.quick_thinking_llm)
         safe_analyst = create_safe_debator(self.quick_thinking_llm)
         risk_manager_node = create_risk_manager(
-            self.deep_thinking_llm, self.risk_manager_memory
+            self.deep_thinking_llm, self.risk_manager_memory, self.risk_level
         )
 
         # Create workflow

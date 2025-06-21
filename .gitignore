@@ -1,5 +1,7 @@
 env/
 __pycache__/
+results/
+chroma/
 .DS_Store
 *.csv
 src/

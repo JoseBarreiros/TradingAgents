@@ -10,6 +10,8 @@ DEFAULT_CONFIG = {
         os.path.abspath(os.path.join(os.path.dirname(__file__), ".")),
         "dataflows/data_cache",
     ),
+    # Risk management settings
+    "risk_level": "medium",  # Options: low, medium, high, no_guidance
     # LLM settings
     "deep_think_llm": "o4-mini",
     "quick_think_llm": "gpt-4o-mini",

@@ -2,7 +2,7 @@ import time
 import json
 
 
-def create_risk_manager(llm, memory):
+def create_risk_manager(llm, memory, risk_level="medium"):
     def risk_manager_node(state) -> dict:
 
         company_name = state["company_of_interest"]
@@ -22,7 +22,38 @@ def create_risk_manager(llm, memory):
         for i, rec in enumerate(past_memories, 1):
             past_memory_str += rec["recommendation"] + "\n\n"
 
+        # Add risk_level guidance to the prompt
+        if risk_level == "low":
+            risk_guidance = (
+                "You must prioritize safety and capital preservation. "
+                "Favor conservative arguments and only recommend BUY or SELL if the case is overwhelmingly strong. "
+                "Prefer HOLD when in doubt."
+            )
+        elif risk_level == "high":
+            risk_guidance = (
+                "You are encouraged to take bold actions and seek higher returns. "
+                "Favor aggressive arguments and be willing to recommend BUY or SELL when there is reasonable upside. "
+                "Only recommend HOLD if there are clear and strong reasons."
+            )
+        elif risk_level == "medium": 
+            risk_guidance = (
+                "Balance risk and reward. Weigh both aggressive and conservative arguments equally. "
+                "Recommend BUY, SELL, or HOLD based on the overall strength of the debate."
+            )
+        elif risk_level == "no_guidance":
+            risk_guidance = None
+        else:
+            raise ValueError(f"Invalid risk level: {risk_level}")
+
+        if risk_guidance is not None:
+            risk_guidance_prompt = f"\nRisk Level Guidance: {risk_guidance}"
+        else:
+            risk_guidance_prompt = ""
+
+
         prompt = f"""As the Risk Management Judge and Debate Facilitator, your goal is to evaluate the debate between three risk analysts—Risky, Neutral, and Safe/Conservative—and determine the best course of action for the trader. Your decision must result in a clear recommendation: Buy, Sell, or Hold. Choose Hold only if strongly justified by specific arguments, not as a fallback when all sides seem valid. Strive for clarity and decisiveness.
+
+{risk_guidance_prompt}
 
 Guidelines for Decision-Making:
 1. **Summarize Key Arguments**: Extract the strongest points from each analyst, focusing on relevance to the context.

@@ -22,7 +22,7 @@ def init_ticker(func: Callable) -> Callable:
 
 @decorate_all_methods(init_ticker)
 class YFinanceUtils:
-
+    
     def get_stock_data(
         symbol: Annotated[str, "ticker symbol"],
         start_date: Annotated[
@@ -41,7 +41,7 @@ class YFinanceUtils:
         stock_data = ticker.history(start=start_date, end=end_date)
         # save_output(stock_data, f"Stock data for {ticker.ticker}", save_path)
         return stock_data
-
+    
     def get_stock_info(
         symbol: Annotated[str, "ticker symbol"],
     ) -> dict:
@@ -49,7 +49,7 @@ class YFinanceUtils:
         ticker = symbol
         stock_info = ticker.info
         return stock_info
-
+    
     def get_company_info(
         symbol: Annotated[str, "ticker symbol"],
         save_path: Optional[str] = None,
@@ -69,7 +69,7 @@ class YFinanceUtils:
             company_info_df.to_csv(save_path)
             print(f"Company info for {ticker.ticker} saved to {save_path}")
         return company_info_df
-
+    
     def get_stock_dividends(
         symbol: Annotated[str, "ticker symbol"],
         save_path: Optional[str] = None,
@@ -81,25 +81,25 @@ class YFinanceUtils:
             dividends.to_csv(save_path)
             print(f"Dividends for {ticker.ticker} saved to {save_path}")
         return dividends
-
+    
     def get_income_stmt(symbol: Annotated[str, "ticker symbol"]) -> DataFrame:
         """Fetches and returns the latest income statement of the company as a DataFrame."""
         ticker = symbol
         income_stmt = ticker.financials
         return income_stmt
-
+    
     def get_balance_sheet(symbol: Annotated[str, "ticker symbol"]) -> DataFrame:
         """Fetches and returns the latest balance sheet of the company as a DataFrame."""
         ticker = symbol
         balance_sheet = ticker.balance_sheet
         return balance_sheet
-
+    
     def get_cash_flow(symbol: Annotated[str, "ticker symbol"]) -> DataFrame:
         """Fetches and returns the latest cash flow statement of the company as a DataFrame."""
         ticker = symbol
         cash_flow = ticker.cashflow
         return cash_flow
-
+    
     def get_analyst_recommendations(symbol: Annotated[str, "ticker symbol"]) -> tuple:
         """Fetches the latest analyst recommendations and returns the most common recommendation and its count."""
         ticker = symbol
