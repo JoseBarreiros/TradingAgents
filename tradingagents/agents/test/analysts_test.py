@@ -149,12 +149,20 @@ def test_news_analyst_node_returns_report(dummy_state, monkeypatch):
     llm = MagicMock()
     toolkit = MagicMock()
     toolkit.config = {"online_tools": True}
-    mock_tool = MagicMock()
-    mock_tool.name = "get_global_news_openai"
+    # Create mock tools with .name attributes
+    mock_tool1 = MagicMock()
+    mock_tool1.name = "get_global_news_openai"
     mock_tool2 = MagicMock()
     mock_tool2.name = "get_google_news"
-    toolkit.get_global_news_openai = mock_tool
+    mock_tool3 = MagicMock()
+    mock_tool3.name = "get_reddit_news_online"
+    mock_tool4 = MagicMock()
+    mock_tool4.name = "get_finnhub_news_online"
+
+    toolkit.get_global_news_openai = mock_tool1
     toolkit.get_google_news = mock_tool2
+    toolkit.get_reddit_news_online = mock_tool3
+    toolkit.get_finnhub_news_online = mock_tool4
     llm.bind_tools.return_value = lambda tools: lambda *a, **k: fake_chain
 
     node = news_analyst.create_news_analyst(llm, toolkit)
@@ -190,11 +198,31 @@ def test_social_media_analyst_node_returns_report(dummy_state, monkeypatch):
     )
 
     llm = MagicMock()
-    toolkit = MagicMock()
+    toolkit = MagicMock(
+        spec=[
+            "config",
+            "get_stock_news_openai",
+            "get_reddit_news_online",
+            "get_twitter_news_online",
+        ]
+    )
     toolkit.config = {"online_tools": True}
-    mock_tool = MagicMock()
-    mock_tool.name = "get_stock_news_openai"
-    toolkit.get_stock_news_openai = mock_tool
+
+    mock_tool1 = MagicMock()
+    mock_tool1.name = "get_stock_news_openai"
+    mock_tool2 = MagicMock()
+    mock_tool2.name = "get_reddit_news_online"
+    mock_tool3 = MagicMock()
+    mock_tool3.name = "get_twitter_news_online"
+    mock_tool4 = MagicMock()
+    mock_tool4.name = "get_reddit_stock_info_online"
+    toolkit.get_reddit_stock_info_online = mock_tool4
+
+    toolkit.get_stock_news_openai = mock_tool1
+    toolkit.get_reddit_news_online = mock_tool2
+    toolkit.get_twitter_news_online = mock_tool3
+    toolkit.get_reddit_stock_info_online = mock_tool4
+
     llm.bind_tools.return_value = lambda tools: lambda *a, **k: fake_chain
 
     node = social_media_analyst.create_social_media_analyst(llm, toolkit)

@@ -1,5 +1,6 @@
 import json
 import requests
+import os
 from bs4 import BeautifulSoup
 from datetime import datetime
 import time
@@ -107,5 +108,65 @@ def getNewsData(query, start_date, end_date):
         except Exception as e:
             print(f"Failed after multiple retries: {e}")
             break
+
+    return news_results
+
+
+def getNewsData_api(query, start_date, end_date):
+    """
+    Fetch news articles for a given query and date range using NewsAPI.
+    Args:
+        query: str - search query
+        start_date: str - start date in the format yyyy-mm-dd
+        end_date: str - end date in the format yyyy-mm-dd
+    Returns:
+        list of dicts: Each dict contains 'title', 'description', 'url', 'publishedAt', 'source'
+    """
+    api_key = os.environ.get("NEWSAPI_KEY")
+    if not isinstance(query, str) or not query.strip():
+        raise ValueError("Query must be a non-empty string.")
+    try:
+        start_dt = datetime.strptime(start_date, "%Y-%m-%d")
+        end_dt = datetime.strptime(end_date, "%Y-%m-%d")
+    except ValueError:
+        raise ValueError("Dates must be in yyyy-mm-dd format.")
+    assert start_dt < end_dt, "Start date must be before end date"
+
+    url = "https://newsapi.org/v2/everything"
+    params = {
+        "q": query,
+        "from": start_date,
+        "to": end_date,
+        "sortBy": "relevancy",
+        "language": "en",
+        "pageSize": 100,  # max per page
+        "apiKey": api_key,
+    }
+
+    news_results = []
+    page = 1
+    while True:
+        params["page"] = page
+        response = requests.get(url, params=params)
+        if response.status_code != 200:
+            print(f"API error: {response.status_code} - {response.text}")
+            break
+        data = response.json()
+        articles = data.get("articles", [])
+        if not articles:
+            break
+        for article in articles:
+            news_results.append(
+                {
+                    "title": article.get("title"),
+                    "snippet": article.get("description"),
+                    "link": article.get("url"),
+                    "date": article.get("publishedAt"),
+                    "source": article.get("source", {}).get("name"),
+                }
+            )
+        if len(articles) < params["pageSize"]:
+            break  # No more pages
+        page += 1
 
     return news_results

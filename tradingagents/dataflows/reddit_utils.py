@@ -3,9 +3,10 @@ import time
 import json
 from datetime import datetime, timedelta
 from contextlib import contextmanager
-from typing import Annotated
+from typing import Annotated, List, Dict
 import os
 import re
+import praw
 
 ticker_to_company = {
     "AAPL": "Apple",
@@ -149,3 +150,81 @@ def fetch_top_from_category(
         all_content.extend(all_content_curr_subreddit[:limit_per_subreddit])
 
     return all_content
+
+
+def fetch_top_from_category_online(
+    category: Annotated[str, "Comma-separated list of subreddits or a category name."],
+    date: Annotated[str, "Date to fetch top posts from."],
+    max_limit: Annotated[int, "Maximum number of posts to fetch."],
+    query: Annotated[str, "Optional query to search for in the subreddit."] = None,
+    subreddit_map: Dict[str, List[str]] = None,  # Map category to list of subreddits
+) -> List[Dict]:
+    """
+    Fetch top posts from Reddit online for a given category and date using Reddit API (PRAW).
+    """
+    reddit_client = praw.Reddit(
+        client_id=os.environ["REDDIT_CLIENT_ID"],
+        client_secret=os.environ["REDDIT_CLIENT_SECRET"],
+        user_agent="script:trading_agents:v1.0 (by u/SpiritQueasy3662)",
+    )
+    if reddit_client is None:
+        raise ValueError("A PRAW Reddit client instance must be provided.")
+
+    # Validate category
+    if not isinstance(category, str) or not category.strip():
+        raise ValueError("Category must be a non-empty string.")
+    try:
+        date_dt = datetime.strptime(date, "%Y-%m-%d")
+    except ValueError:
+        raise ValueError(f"Date '{date}' must be in 'YYYY-MM-DD' format.")
+
+    if not isinstance(max_limit, int) or max_limit <= 0:
+        raise ValueError("max_limit must be a positive integer.")
+
+    # Map category to subreddits if needed
+    if subreddit_map and category in subreddit_map:
+        subreddits = subreddit_map[category]
+    else:
+        subreddits = [s.strip() for s in category.split(",") if s.strip()]
+
+    all_content = []
+    limit_per_subreddit = max_limit // len(subreddits) if subreddits else max_limit
+
+    # Calculate start and end timestamps for the date
+    start_epoch = int(datetime(date_dt.year, date_dt.month, date_dt.day).timestamp())
+    end_epoch = int((date_dt + timedelta(days=1)).timestamp())
+
+    for subreddit_name in subreddits:
+        subreddit = reddit_client.subreddit(subreddit_name)
+        count = 0
+        for submission in subreddit.top(
+            time_filter="day", limit=100
+        ):  # Fetch top 100 for the day
+            created_utc = int(submission.created_utc)
+            if not (start_epoch <= created_utc < end_epoch):
+                continue
+            if query:
+                # Check if query is in title or selftext
+                if not (
+                    re.search(query, submission.title, re.IGNORECASE)
+                    or re.search(
+                        query, getattr(submission, "selftext", ""), re.IGNORECASE
+                    )
+                ):
+                    continue
+            post_obj = {
+                "title": submission.title,
+                "content": getattr(submission, "selftext", ""),
+                "url": submission.url,
+                "upvotes": submission.score,
+                "posted_date": datetime.utcfromtimestamp(created_utc).strftime(
+                    "%Y-%m-%d"
+                ),
+            }
+            all_content.append(post_obj)
+            count += 1
+            if count >= limit_per_subreddit:
+                break
+
+    all_content.sort(key=lambda x: x["upvotes"], reverse=True)
+    return all_content[:max_limit]

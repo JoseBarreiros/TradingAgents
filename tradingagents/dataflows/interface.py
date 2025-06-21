@@ -1,5 +1,5 @@
 from typing import Annotated, Dict
-from .reddit_utils import fetch_top_from_category
+from .reddit_utils import fetch_top_from_category, fetch_top_from_category_online
 from .yfin_utils import *
 from .stockstats_utils import *
 from .googlenews_utils import *
@@ -65,6 +65,78 @@ def get_finnhub_news(
             combined_result += current_news + "\n\n"
 
     return f"## {ticker} News, from {before} to {curr_date}:\n" + str(combined_result)
+
+
+def get_finnhub_news_online(
+    ticker: str,
+    curr_date: str,
+    look_back_days: int,
+) -> str:
+    """
+    Retrieve news about a company within a time frame using the Finnhub API.
+
+    Args:
+        ticker (str): ticker for the company you are interested in
+        curr_date (str): Current date in yyyy-mm-dd format
+        look_back_days (int): how many days to look back
+
+    Returns:
+        str: formatted string containing the news of the company in the time frame
+    """
+    # Validate ticker
+    if not isinstance(ticker, str) or not ticker.strip():
+        raise ValueError("Error: 'ticker' must be a non-empty string.")
+
+    try:
+        end_date = datetime.strptime(curr_date, "%Y-%m-%d")
+    except ValueError:
+        raise ValueError(
+            f"Error: Dates must be in 'YYYY-MM-DD' format. Got '{curr_date}'"
+        )
+
+    start_date = end_date - relativedelta(days=look_back_days)
+    start_date_str = start_date.strftime("%Y-%m-%d")
+    end_date_str = end_date.strftime("%Y-%m-%d")
+
+    api_key = os.environ.get("FINNHUB_API_KEY")
+    if not api_key:
+        raise ValueError("FINNHUB_API_KEY environment variable not set.")
+
+    url = (
+        f"https://finnhub.io/api/v1/company-news"
+        f"?symbol={ticker.upper()}&from={start_date_str}&to={end_date_str}&token={api_key}"
+    )
+
+    response = requests.get(url)
+    if response.status_code != 200:
+        raise RuntimeError(
+            f"Finnhub API error: {response.status_code} - {response.text}"
+        )
+
+    news_data = response.json()
+    if not news_data or not isinstance(news_data, list):
+        return ""
+
+    combined_result = ""
+    for entry in news_data:
+        headline = entry.get("headline", "")
+        summary = entry.get("summary", "")
+        datetime_str = (
+            datetime.utcfromtimestamp(entry.get("datetime", 0)).strftime("%Y-%m-%d")
+            if entry.get("datetime")
+            else ""
+        )
+        if not headline:
+            continue
+        current_news = f"### {headline} ({datetime_str})\n{summary}"
+        combined_result += current_news + "\n\n"
+
+    if not combined_result:
+        return ""
+
+    return (
+        f"## {ticker} News, from {start_date_str} to {end_date_str}:\n{combined_result}"
+    )
 
 
 def get_finnhub_company_insider_sentiment(
@@ -320,7 +392,10 @@ def get_google_news(
     before = start_date - relativedelta(days=look_back_days)
     before = before.strftime("%Y-%m-%d")
 
-    news_results = getNewsData(query, before, curr_date)
+    # Scrape Google News search results for a given query and date range
+    # news_results = getNewsData(query, before, curr_date)
+    # Use the API to get news data
+    news_results = getNewsData_api(query, before, curr_date)
 
     news_str = ""
 
@@ -339,6 +414,7 @@ def get_reddit_global_news(
     start_date: Annotated[str, "Start date in yyyy-mm-dd format"],
     look_back_days: Annotated[int, "how many days to look back"],
     max_limit_per_day: Annotated[int, "Maximum number of news per day"],
+    online=False,
 ) -> str:
     """
     Retrieve the latest top reddit news
@@ -362,12 +438,20 @@ def get_reddit_global_news(
 
     while curr_date <= start_date:
         curr_date_str = curr_date.strftime("%Y-%m-%d")
-        fetch_result = fetch_top_from_category(
-            "global_news",
-            curr_date_str,
-            max_limit_per_day,
-            data_path=os.path.join(DATA_DIR, "reddit_data"),
-        )
+        if not online:
+            fetch_result = fetch_top_from_category(
+                "global_news",
+                curr_date_str,
+                max_limit_per_day,
+                data_path=os.path.join(DATA_DIR, "reddit_data"),
+            )
+        else:
+            fetch_result = fetch_top_from_category_online(
+                "global_news",
+                curr_date_str,
+                max_limit_per_day,
+                subreddit_map={"global_news": ["worldnews"]},
+            )
         posts.extend(fetch_result)
         curr_date += relativedelta(days=1)
         pbar.update(1)
@@ -392,6 +476,7 @@ def get_reddit_company_news(
     start_date: Annotated[str, "Start date in yyyy-mm-dd format"],
     look_back_days: Annotated[int, "how many days to look back"],
     max_limit_per_day: Annotated[int, "Maximum number of news per day"],
+    online=False,
 ) -> str:
     """
     Retrieve the latest top reddit news
@@ -422,13 +507,22 @@ def get_reddit_company_news(
 
     while curr_date <= start_date:
         curr_date_str = curr_date.strftime("%Y-%m-%d")
-        fetch_result = fetch_top_from_category(
-            "company_news",
-            curr_date_str,
-            max_limit_per_day,
-            ticker,
-            data_path=os.path.join(DATA_DIR, "reddit_data"),
-        )
+        if not online:
+            fetch_result = fetch_top_from_category(
+                "company_news",
+                curr_date_str,
+                max_limit_per_day,
+                ticker,
+                data_path=os.path.join(DATA_DIR, "reddit_data"),
+            )
+        else:
+            fetch_result = fetch_top_from_category_online(
+                "company_news",
+                curr_date_str,
+                max_limit_per_day,
+                ticker,
+                subreddit_map={"company_news": ["stocks"]},
+            )
         posts.extend(fetch_result)
         curr_date += relativedelta(days=1)
 

@@ -1,7 +1,7 @@
 """
 time python backtesting.py --start_date 2025-05-18 --end_date 2025-06-18  --deep_think_llm gpt-4o \
     --quick_think_llm gpt-4.1-mini --initial_cash 10000 \
-    --symbol AAPL --num_workers 10 --risk_level medium \
+    --symbol AAPL --num_workers 20 --risk_level high \
         --selected_analysts market social news fundamentals   
 
 paper experiment:

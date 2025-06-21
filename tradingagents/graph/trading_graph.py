@@ -145,6 +145,7 @@ class TradingAgentsGraph:
                 [
                     self.toolkit.get_stock_news_openai,
                     self.toolkit.get_reddit_stock_info,
+                    self.toolkit.get_reddit_stock_info_online,
                 ]
             ),
             "news": ToolNode(
@@ -152,7 +153,9 @@ class TradingAgentsGraph:
                     self.toolkit.get_global_news_openai,
                     self.toolkit.get_google_news,
                     self.toolkit.get_finnhub_news,
+                    self.toolkit.get_finnhub_news_online,
                     self.toolkit.get_reddit_news,
+                    self.toolkit.get_reddit_news_online,
                 ]
             ),
             "fundamentals": ToolNode(
